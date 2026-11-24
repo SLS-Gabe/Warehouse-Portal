@@ -48,7 +48,10 @@ async function _runCard(cardId: number, timeoutMs: number): Promise<CardResult> 
         "x-api-key": KEY as string,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({}),
+      // Saved questions here are pre-filtered and take no inputs. For a card with
+      // {{template-tag}} variables, pass [{ id, type, target, value }] and look
+      // the tag id up from GET /api/card/<id> dataset_query — don't hardcode it.
+      body: JSON.stringify({ parameters: [] }),
       cache: "no-store",
       signal: ctrl.signal,
     });
@@ -58,7 +61,19 @@ async function _runCard(cardId: number, timeoutMs: number): Promise<CardResult> 
       throw new MetabaseError(res.status, text.slice(0, 300));
     }
 
-    const json = (await res.json()) as { data?: { cols?: MetabaseCol[]; rows?: MetabaseRow[] } };
+    // Metabase can answer 200/202 with a FAILED query — trust the body, not the
+    // HTTP code. Success is status === "completed"; rows/cols live under data.
+    const json = (await res.json()) as {
+      status?: string;
+      error?: string;
+      data?: { cols?: MetabaseCol[]; rows?: MetabaseRow[] };
+    };
+    if (json.status && json.status !== "completed") {
+      throw new MetabaseError(
+        res.status,
+        `card status ${json.status}: ${json.error ?? "query not completed"}`.slice(0, 300),
+      );
+    }
     return { cols: json.data?.cols ?? [], rows: json.data?.rows ?? [] };
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
@@ -104,7 +119,7 @@ const cardSafeCached = unstable_cache(
     }
   },
   ["mb-card"],
-  { revalidate: 300 },
+  { revalidate: 60 }, // 60s per Steve: live-ish, but gentle on the prod DBs
 );
 
 /** Runs a card and throws on failure. Use for tiles the page can't render without. */
