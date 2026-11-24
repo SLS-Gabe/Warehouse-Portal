@@ -85,7 +85,21 @@ const cardSafeCached = unstable_cache(
       return { ok: true, result };
     } catch (err) {
       if (err instanceof MetabaseNotConfiguredError) throw err;
-      if (err instanceof MetabaseError) return { ok: false, status: err.status, message: err.message };
+      if (err instanceof MetabaseError) {
+        console.warn(`[metabase] card ${cardId} http ${err.status}: ${err.message}`);
+        return { ok: false, status: err.status, message: err.message };
+      }
+      // Network-level failure (DNS, refused, TLS). cause.code is the useful bit,
+      // e.g. ENOTFOUND when the host isn't resolvable from Vercel.
+      const code =
+        err && typeof err === "object" && "cause" in err
+          ? (err as { cause?: { code?: string } }).cause?.code
+          : undefined;
+      console.warn(
+        `[metabase] card ${cardId} fetch error: ${
+          err instanceof Error ? `${err.name}: ${err.message}` : "unknown"
+        }${code ? ` code=${code}` : ""}`,
+      );
       return { ok: false, status: 0, message: err instanceof Error ? err.message : "unknown error" };
     }
   },
