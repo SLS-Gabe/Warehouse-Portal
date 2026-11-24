@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
 
 export const metadata: Metadata = {
   title: "Warehouse Portal — SidelineSwap W003",
@@ -22,15 +21,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body>
-        <Sidebar />
-        <main
-          className="min-h-screen px-8 py-7"
-          style={{ marginLeft: "var(--sidebar-w)" }}
-        >
-          {children}
-        </main>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
