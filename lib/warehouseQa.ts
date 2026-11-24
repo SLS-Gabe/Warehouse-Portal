@@ -92,3 +92,98 @@ export async function listQuestions(params: ListParams = {}): Promise<Question[]
   }
   return [];
 }
+
+export type QaItem = {
+  item_id: string;
+  location_id: string | null;
+  title: string | null;
+  missing_at: string | null;
+};
+
+export type QaMessage = {
+  side: string; // "coordinator" | "warehouse"
+  author_name: string | null;
+  body: string;
+  created_at: string;
+  photos?: string[];
+};
+
+export type QuestionDetail = Question & {
+  items: QaItem[];
+  messages: QaMessage[];
+  photos?: string[];
+  bundle_prediction?: unknown;
+  sold_on?: string | null;
+  ebay_order_id?: string | null;
+  label_url?: string | null;
+  allowed_status_moves?: string[];
+};
+
+/** GET /api/v1/questions/{id} — one question with its thread, items and extras. */
+export async function getQuestion(id: string): Promise<QuestionDetail> {
+  const res = await fetch(`${BASE}/api/v1/questions/${encodeURIComponent(id)}`, {
+    headers: headers(),
+    cache: "no-store",
+  });
+  if (!res.ok) throw await toError(res);
+  return (await res.json()) as QuestionDetail;
+}
+
+async function post(path: string, body: unknown, actingAs?: string): Promise<unknown> {
+  const res = await fetch(`${BASE}${path}`, {
+    method: "POST",
+    headers: headers(actingAs),
+    body: JSON.stringify(body ?? {}),
+  });
+  if (!res.ok) throw await toError(res);
+  return res.json().catch(() => ({}));
+}
+
+// Write endpoints live under /api/questions (the app's own routes), per the docs.
+export function setStatus(id: string, status: "in_progress" | "incoming", actingAs?: string) {
+  return post(`/api/questions/${encodeURIComponent(id)}/status`, { status }, actingAs);
+}
+
+export function postMessage(
+  id: string,
+  opts: { body: string; markDone?: boolean; photos?: string[] },
+  actingAs?: string,
+) {
+  return post(
+    `/api/questions/${encodeURIComponent(id)}/messages`,
+    { body: opts.body, markDone: opts.markDone, photos: opts.photos },
+    actingAs,
+  );
+}
+
+export function setMissing(
+  id: string,
+  opts: { itemId: string; missing: boolean; note?: string },
+  actingAs?: string,
+) {
+  return post(
+    `/api/questions/${encodeURIComponent(id)}/missing`,
+    { itemId: opts.itemId, missing: opts.missing, note: opts.note },
+    actingAs,
+  );
+}
+
+export type PackedPayload =
+  | { mode: "predicted"; weightOz?: number }
+  | { mode: "other"; length: number; width: number; height: number; weightOz?: number }
+  | { mode: "skip" };
+
+export function setPacked(id: string, payload: PackedPayload, actingAs?: string) {
+  return post(`/api/questions/${encodeURIComponent(id)}/packed`, payload, actingAs);
+}
+
+/** POST /api/photos/upload-url — one signed URL per photo. */
+export async function createPhotoUpload(
+  actingAs?: string,
+): Promise<{ path: string; token: string; signedUrl: string }> {
+  return post(`/api/photos/upload-url`, {}, actingAs) as Promise<{
+    path: string;
+    token: string;
+    signedUrl: string;
+  }>;
+}

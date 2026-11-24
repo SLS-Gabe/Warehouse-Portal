@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { listQuestions, QaNotConfiguredError, QaApiError } from "@/lib/warehouseQa";
 import { laneForIssueType, LANE_LABELS, type Lane } from "@/lib/lanes";
 import QuestionCard from "@/components/QuestionCard";
@@ -72,7 +73,9 @@ export default async function QueueView({ lane }: { lane: Lane }) {
       ) : (
         <div className="grid gap-3">
           {questions.map((q) => (
-            <QuestionCard key={q.id} q={q} />
+            <Link key={q.id} href={`/questions/${q.id}`} className="block">
+              <QuestionCard q={q} />
+            </Link>
           ))}
         </div>
       )}
