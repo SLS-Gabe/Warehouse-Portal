@@ -1,11 +1,16 @@
-import Placeholder from "@/components/Placeholder";
+import QueueView from "@/components/QueueView";
+
+export const dynamic = "force-dynamic";
 
 export default function TodoItems() {
   return (
-    <Placeholder
-      title="Items — To-Do's"
-      sub="Item questions and requests submitted by Trade-in Coordinators, as a daily actionable queue for the Items team to work through and check off."
-      note="Intake form + live queue — Phase 1"
-    />
+    <div>
+      <h1 className="mb-1 text-[22px] font-semibold tracking-tight">Items — To-Do&apos;s</h1>
+      <p className="mb-6 max-w-[720px] text-[13px] text-text-muted">
+        Item questions from Trade-in Coordinators — bundles, photos, and general gear questions —
+        as a live queue for the Items team to work and close out.
+      </p>
+      <QueueView lane="items" />
+    </div>
   );
 }
